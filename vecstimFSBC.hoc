@@ -1,0 +1,132 @@
+//Alexandra Tzilivaki.
+
+excitatory_synpvapses=7 // 7 syns cannot alone generate spiking. That choice made to ensure that FSBCs are driven primarily by Pyrs 
+ampaweightpv=7.5e-4
+nmdaweightpv=3.2e-4
+
+objref  pevstiminhpv[numberpvs][excitatory_synpvapses], devstiminh[numberpvs][excitatory_synpvapses] 
+objref ranpvinput
+objref pampain_back_pv[numberpvs][excitatory_synpvapses], pnmdain_back_pv[numberpvs][excitatory_synpvapses]
+objref pncampainbackpv[numberpvs][excitatory_synpvapses], pncnmdainbackpv[numberpvs][excitatory_synpvapses]
+                                                      
+objref filepvinput[numberpvs]
+objref stimvectorEpv[numberpvs][excitatory_synpvapses]
+
+strdef tmpstring2
+for c=0, numberpvs-1{
+    for tc=0,excitatory_synpvapses-1{
+        filepvinput[c]=new File()
+        sprint(tmpstring2, "fthetan300/run_1/cell_%d.txt", c+21)
+        filepvinput[c].ropen(tmpstring2)
+  	stimvectorEpv[c][tc]= new Vector()
+	stimvectorEpv[c][tc].scanf(filepvinput[c])
+        filepvinput[c].close()		
+ }
+}
+
+
+objref dpool, rdend 
+
+objref eDendpersynpv[numberpvs][excitatory_synpvapses]
+
+
+number_dendszero=62 //57 //for the other reconstruction
+dpool= new Vector(number_dendszero) // !!
+j=0
+for i= 0, number_dendszero-1{
+    dpool.x[j]=i
+    j=j+1
+}
+
+//---------------------------------------------------
+//disperse
+// /*
+
+objref rd
+proc call_vecstim() {
+rdend=new Random($1)
+
+edendritis=rdend.discunif(0,62) //57 //for the other reconstruction
+
+rd = new Random($1) 
+
+ranpvinput = new Random($1)
+PIDb = ranpvinput.uniform(0, 1)
+
+for cell=0,numberpvs-1{
+
+   for synpv=0,excitatory_synpvapses-1 {
+
+	   pevstiminhpv[cell][synpv] = new VecStim(0.5)
+	   pevstiminhpv[cell][synpv].delay = 0
+	    pevstiminhpv[cell][synpv].play(stimvectorEpv[cell][synpv])
+	   PIDb=ranpvinput.repick()
+
+           edendritis=rdend.repick()
+           print "edendritis", edendritis
+	        PVList.o(cell).dend[edendritis] pampain_back_pv[cell][synpv]=new CPGLUIN(PIDb)
+		PVList.o(cell).dend[edendritis] pnmdain_back_pv[cell][synpv]=new NMDAIN(PIDb)
+
+		pncampainbackpv[cell][synpv] = new NetCon(pevstiminhpv[cell][synpv], pampain_back_pv[cell][synpv], -20, 0, ampaweightpv)
+		pncnmdainbackpv[cell][synpv] = new NetCon(pevstiminhpv[cell][synpv], pnmdain_back_pv[cell][synpv], -20, 0, nmdaweightpv)
+  }
+
+ }
+
+} // procedure
+//*/
+
+
+/* //cluster
+cluster_size_pvinput=1//number of dends for the input
+cluster_syn_pvinputapses_pvinput=7 //syn_pvinputs clustered 
+objref branch_pvinput, tmpbranch_pvinput, rndcluster_pvinput,rdendinputpv
+
+proc call_vecstim() {
+
+rndcluster_pvinput=new Vector(cluster_size_pvinput,0)
+     rdendinputpv=new Random($1)
+for branch_pvinputesone=0, rndcluster_pvinput.size()-1{ //in every dend
+
+     rndcluster_pvinput.x[branch_pvinputesone]=rdendinputpv.discunif(0,62)
+     //or 57
+     }
+
+ranpvinput = new Random($1)
+PIDb = ranpvinput.uniform(0, 1)
+
+for cell=0,numberpvs-1{
+
+ for branch_pvinputes=0, rndcluster_pvinput.size()-1{ //in every dend
+        
+             edendritis_pvinput=rndcluster_pvinput.x[branch_pvinputes]
+	    print "INPUT PV DENDRITE PVONE SELECTED IS ", edendritis_pvinput
+
+                 for syn_pvinput=0,cluster_syn_pvinputapses_pvinput-1{ //will take these syn_pvinputs
+       
+               uidx_pvinput = branch_pvinputes*cluster_syn_pvinputapses_pvinput+syn_pvinput 
+               print "uidx_pvinput", uidx_pvinput  
+
+	       pevstiminhpv[cell][uidx_pvinput] = new VecStim(0.5)
+	       pevstiminhpv[cell][uidx_pvinput].delay = 0
+	       pevstiminhpv[cell][uidx_pvinput].play(stimvectorEpv[cell][uidx_pvinput])
+	       PIDb=ranpvinput.repick()
+
+		PVList.o(cell).dend[edendritis_pvinput] pampain_back_pv[cell][uidx_pvinput]=new CPGLUIN(PIDb)
+		PVList.o(cell).dend[edendritis_pvinput] pnmdain_back_pv[cell][uidx_pvinput]=new NMDAIN(PIDb)
+
+		pncampainbackpv[cell][uidx_pvinput] = new NetCon(pevstiminhpv[cell][uidx_pvinput], pampain_back_pv[cell][syn_pvinput], -20, 0, ampaweightpv)
+		pncnmdainbackpv[cell][uidx_pvinput] = new NetCon(pevstiminhpv[cell][uidx_pvinput], pnmdain_back_pv[cell][syn_pvinput], -20, 0, nmdaweightpv)
+      }
+
+    }
+
+  } // procedure
+}
+*/
+
+
+
+
+
+

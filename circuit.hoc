@@ -1,0 +1,305 @@
+
+//Circuit connections
+// Connect neurons
+objref delstimpyrpyr, delpyrpv, delpvpyr, r, locpi, ran, delpvpv, rpv 
+
+// Number of Synapses
+maxsynpyrpyr=7
+maxsynpyrpv=15
+maxsynpvpyr=13
+maxsynpvpv=5
+//CA3 FEEDBACK PV to PYR
+objref gabaa[numberpvs][numberpyrs][maxsynpvpyr], gabab[numberpvs][numberpyrs][maxsynpvpyr], congaip[numberpvs][numberpyrs][maxsynpvpyr], congbip[numberpvs][numberpyrs][maxsynpvpyr]
+
+// CA3 PYR to PYR
+//2. random
+objref ampapyrpyr[maxsynpyrpyr], conampapyrpyr[maxsynpyrpyr] //ampapyrpyr
+objref nmdapyrpyr[maxsynpyrpyr], connmdapyrpyr[maxsynpyrpyr] //nmdapyrpyr
+//CA3 PYR to PV
+objref ampapyrpvone[numberpvs][maxsynpyrpv], nmdapyrpvone[numberpvs][maxsynpyrpv], conampapinone[numberpvs][maxsynpyrpv], connmdapinone[numberpvs][maxsynpyrpv]
+
+//PV to PV
+objref gabapvone[numberpvs][numberpvs][maxsynpvpv],gabapvone[numberpvs][numberpvs][maxsynpvpv], congabapvone[numberpvs][numberpvs][maxsynpvpv]
+
+
+//Synaptic Weights 
+nmdaweightpyrpyr = 	3.0e-3*1.7
+ampaweightpyrpyr=	1.70e-3
+
+
+
+ampaweightpyrpv=	7.5e-4*2*0.9
+
+nmdaweightpyrpv=	3.2e-4*5*0.9
+
+
+
+
+gabaaweightpvpyr=	4.0e-3*1.7
+gabaaweightpv=      5.1e-3
+
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+//                                       PV TO PYR INPUT   
+//--------------------------------------------------------------------------------------------------------------------------------------------------
+objref locpvpyr
+proc connect_pvpyr() {
+	delpvpyr= new Random($1)
+	delpvpyr.normal(0.6, 0.2)	
+        locpvpyr=new Random($1)
+	locpvpyr.uniform(0,1)
+	
+             for lala=0, numberpvs-1{
+		for tnpvpyr=0, numberpyrs-1{     
+			for synpvpyr=0, maxsynpvpyr-1 {
+				PIDpvpyr = locpvpyr.repick ()
+				PyramidalList.o(tnpvpyr).soma gabaa[lala][tnpvpyr][synpvpyr] = new GABAapyr(PIDpvpyr)
+				TIDipvpyr=delpvpyr.repick()
+				if (TIDipvpyr<0) TIDipvpyr=TIDipvpyr*(-1)
+				PVList.o(lala).soma congaip[lala][tnpvpyr][synpvpyr] = new NetCon(&v(1), gabaa[lala][tnpvpyr][synpvpyr], -20, TIDipvpyr, gabaaweightpvpyr)
+
+	    }
+	}
+    }
+}
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+/**************************************PV to PV*****************************************************************************
+**************************************************************************************************************************/
+proc connect_pvpv() {
+	delpvpv= new Random($1)
+	delpvpv.normal(0.6, 0.2)	
+rpv=new Random($1)
+	rpv.uniform(0,1)
+	for snpvpv=0, numberpvs-1 {
+		for tnpvpv=0, numberpvs-1 {     
+if (tnpvpv!=snpvpv){
+			for synpvpv=0, maxsynpvpv-1 {
+				PIDpv = rpv.repick ()
+
+				PVList.o(tnpvpv).soma gabapvone[snpvpv][tnpvpv][synpvpv] = new GABAapv(PIDpv)
+
+			
+				TIDip=delpvpv.repick()
+				if (TIDip<0) TIDip=TIDip*(-1)
+
+				PVList.o(snpvpv).soma congabapvone[snpvpv][tnpvpv][synpvpv] = new NetCon(&v(1), gabapvone[snpvpv][tnpvpv][synpvpv], -20, TIDip, gabaaweightpv)
+
+			}
+		}
+	}
+   }
+
+}
+//#########################################################################################################################################################
+
+
+// random dends of Pyrs
+
+
+objref pyrdend
+pyrdend=new Vector(5)
+for papa=0,4{
+pyrdend.x[papa]=papa
+}
+
+
+objref randompyrdend
+
+randompyrdend=new Random(5)
+
+randompyrdend.uniform(0,4)
+
+objref rpd
+rpd=new Vector(5,0)
+for j=0, rpd.size()-1{
+
+rpd.x[j]=pyrdend.x[(randompyrdend.discunif(0,pyrdend.size()-1))]
+}
+
+/*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&*/
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+//                                       PYR TO PYR INPUT 
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+
+objref pick_pyr, pick_pyrdend
+proc connect_pyr() {		
+	r=new Random($1)
+	r.uniform(0,1)	
+delstimpyrpyr= new Random($1)
+delstimpyrpyr.normal(0.6, 0.2)
+pick_pyr= new Random($1)
+pick_pyrdend=new Random($1)
+for tn=0,19{
+
+//print "PYR cell THAT receive INPUT from PYR IS",tn                          
+for synpyrpyr=0, maxsynpyrpyr-1 {
+
+source=pick_pyr.discunif(0,19) // random pyr cell
+if (source!=tn){
+
+	//print "PYR SOMA THAT sends INPUT IS ",source
+bla=pick_pyrdend.discunif(0,4)         // random pyramidal cell dendrite selection
+
+
+					PID=r.repick()
+					
+					
+				PyramidalList.o[tn].dend[bla] ampapyrpyr[synpyrpyr]=new GLU(PID)
+				PyramidalList.o[tn].dend[bla] nmdapyrpyr[synpyrpyr]=new NMDA(PID)
+				TID=delstimpyrpyr.repick()
+				if (TID<0) TID=TID*(-1)
+				
+					PyramidalList.o[source].soma {conampapyrpyr[synpyrpyr] = new NetCon(&v(1), ampapyrpyr[synpyrpyr], -20, TID, ampaweightpyrpyr)}
+					PyramidalList.o[source].soma {connmdapyrpyr[synpyrpyr] = new NetCon(&v(1), nmdapyrpyr[synpyrpyr], -20, TID, nmdaweightpyrpyr)}
+				
+			}
+		}
+	}
+}
+
+//###############################################################################################################################
+
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+//                                       PYR TO PV INPUT IN RANDOM DENDS
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+//Disperse protocol
+//-------------------------------------------------------------------------------
+
+objref pick_pyr_forpv, rdendpyrpv
+
+
+proc connect_pyrpv() {
+
+delpyrpv= new Random($1)
+delpyrpv.normal(0.6, 0.2)
+
+ran=new Random($1) 
+ran.uniform(0,1)
+ PIDpyrpv = ran.uniform(0.0, 1.0) 
+ 
+pick_pyr_forpv= new Random($1)	
+sn=pick_pyr_forpv.discunif(0,19)
+
+rdendpyrpv=new Random($1)
+edendritispyrpv=rdendpyrpv.discunif(0,62)
+
+ran = new Random($1)
+PIDb = ran.uniform(0, 1)
+
+ 
+for tnpyrpv=0,numberpvs-1{
+    for syn=0,maxsynpyrpv-1{
+    
+	PIDpyrpv = ran.repick ()
+	edendritispyrpv=rdendpyrpv.repick()
+
+	print "DENDRITE PVONE SELECTED IS ", edendritispyrpv
+	sn=pick_pyr_forpv.repick()
+
+       PVList.o(tnpyrpv).dend[edendritispyrpv] ampapyrpvone[tnpyrpv][syn] = new CPGLUIN(PIDpyrpv)
+       PVList.o(tnpyrpv).dend[edendritispyrpv] nmdapyrpvone[tnpyrpv][syn] = new NMDAIN(PIDpyrpv)
+       
+       TIDpyrpv=delpyrpv.repick()
+       if (TIDpyrpv<0) TIDpyrpv=TIDpyrpv*(-1)
+
+       print " PYR TO PV_________________________________________> ", sn
+       
+      kla=ampaweightpyrpv
+          PyramidalList.o(sn).soma conampapinone[tnpyrpv][syn] = new NetCon(&v(1), ampapyrpvone[tnpyrpv][syn], -20,TIDpyrpv, kla)   
+    
+       
+       print "DENDRITE", edendritispyrpv
+      print "Conductunce", kla
+    PyramidalList.o(sn).soma connmdapinone[tnpyrpv][syn] = new NetCon(&v(1), nmdapyrpvone[tnpyrpv][syn], -20, TIDpyrpv, nmdaweightpyrpv)   
+
+    }
+ }
+}
+
+//clustered Protocol. pyr pv syns in 3 branches. 5 synapses per branch
+/*cluster_size=3//number of dends
+cluster_synapses=5 //syns clustered in the 3 branches
+objref branch, tmpbranch, rndcluster
+
+proc connect_pyrpv() {
+
+delpyrpv= new Random($1)
+delpyrpv.normal(0.6, 0.2)
+
+ran=new Random($1) //check
+ran.uniform(0,1)
+PIDpyrpv = ran.uniform(0.0, 1.0) 
+
+
+pick_pyr_forpv= new Random($1)	
+sn=pick_pyr_forpv.discunif(0,19)
+
+
+rndcluster=new Vector(cluster_size,0)
+     rdendpyrpv=new Random($1)
+for branchesone=0, rndcluster.size()-1{ //in every dend
+
+     rndcluster.x[branchesone]=rdendpyrpv.discunif(0,62)
+}
+ 
+ 
+for tnpyrpv=0,numberpvs-1{ //every pv
+        for branches=0, rndcluster.size()-1{ //in every dend
+        
+             edendritispyrpv=rndcluster.x[branches]
+	    print "DENDRITE PVONE SELECTED IS ", edendritispyrpv
+
+            for syn=0,cluster_synapses-1{ //will take these syns
+       
+
+	    
+	    
+               uidx = branches*cluster_synapses+syn 
+               print "uidx", uidx  
+	    
+	   
+	   
+           	 PIDpyrpv = ran.repick ()
+           	 sn=pick_pyr_forpv.repick()
+           
+             	PVList.o(tnpyrpv).dend[edendritispyrpv] ampapyrpvone[tnpyrpv][uidx] = new CPGLUIN(PIDpyrpv)
+             	PVList.o(tnpyrpv).dend[edendritispyrpv] nmdapyrpvone[tnpyrpv][uidx] = new NMDAIN(PIDpyrpv)
+       
+       
+                TIDpyrpv=delpyrpv.repick()
+                if (TIDpyrpv<0) TIDpyrpv=TIDpyrpv*(-1)
+
+                 //print " PYR TO PV_________________________________________> ", sn
+       
+       
+               PyramidalList.o(sn).soma conampapinone[tnpyrpv][uidx] = new NetCon(&v(1), ampapyrpvone[tnpyrpv][uidx], -20,TIDpyrpv, ampaweightpyrpv)   
+
+               PyramidalList.o(sn).soma connmdapinone[tnpyrpv][uidx] = new NetCon(&v(1), nmdapyrpvone[tnpyrpv][uidx], -20, TIDpyrpv, nmdaweightpyrpv)   
+
+   }
+  }
+ }
+}*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

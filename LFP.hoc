@@ -1,0 +1,76 @@
+func fieldrec() { local I, Phi, PhiAll, r, x, y, z, x1, x2, y1, y2, z1, z2, dS, h, l, r2
+	sigma =0.3*25
+	PhiAll = 0
+	forall {
+	if (ismembrane("extracellular")) {
+		I = 0
+		for (x,0) { I += i_membrane(x)*area(x) }
+		//if( n3d() != 2 ) print "n3d() not 2, line approximation is invalid, section: ", secname()
+		// coordinates of the line ends:
+		x1 = x3d(0)
+		x2 = x3d(1)
+		y1 = y3d(0)
+		y2 = y3d(1)
+		z1 = z3d(0)
+		z2 = z3d(1)
+		dS = arc3d(1)
+		// distances:
+		h = (1/dS) * ( (Ex - x2)*(x2 - x1) + (Ey - y2)*(y2 - y1) + (Ez - z2)*(z2 - z1)  ) 
+		r2 = (Ex - x2)^2 + (Ey - y2)^2 + (Ez - z2)^2 - h^2
+		l = h + dS
+		if (h<0 && l<0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) / (sqrt(l^2 + r2) - l) ) }
+		if (h<0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (sqrt(h^2 + r2) - h) * ( l + sqrt(l^2 + r2) ) / r2) }
+		if (h>0 && l>0) { Phi = (I/(4*PI*sigma*dS)) * log( (l + sqrt(l^2 + r2) ) / ( sqrt(h^2 + r2) + h )) }
+		ifsec "soma" { //treat it as a sphere
+			x = (x2 + x1)/2
+			y = (y2 + y1)/2
+			z = (z2 + z1)/2
+			r = sqrt( (Ex-x)^2 + (Ey-y)^2 + (Ez-z)^2 )
+			Phi =  I/(4*PI*sigma*r)
+			}
+		PhiAll += Phi
+		}
+		}
+	return PhiAll
+}
+
+func totalI() { local I
+	I = 0
+	forall { 
+			if (ismembrane("extracellular")) {
+				for (x,0) { I += i_membrane(x)*area(x) } 
+			}				
+	}
+	return I
+}
+
+vrec = 0
+//irec = 0
+proc init() {
+    finitialize(v_init)
+    fcurrent()
+	vrec = fieldrec()
+//	irec = totalI()
+}
+
+proc advance() {
+    fadvance()
+	vrec = fieldrec()
+//	irec = totalI()
+}
+objref Vrec
+Vrec = new Vector()
+Vrec.record(&vrec,0.1)  // Dt=0.2 ms f=5kHz, so now sampling f=10 KHz ALEKA 
+
+/*proc writeLFP() { localobj fout
+// arg $1 must be file name, e.g. "myfile.ext"
+  fout=new File()
+  fout.wopen($s1)
+  Vrec.printf(fout, "%g\n")
+  fout.close()
+}*/
+
+
+
+
+

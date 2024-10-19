@@ -1,0 +1,62 @@
+
+
+
+//########################################
+
+
+synapsespyr=5
+
+ampaweightin=1.7e-3*1.6
+nmdaweightin=5.3e-3
+
+objref  pevstiminh[numberpyrs][synapsespyr], devstiminh[numberpyrs][synapsespyr]
+objref ranpyrinput 
+
+objref pampain_back[numberpyrs][synapsespyr], pnmdain_back[numberpyrs][synapsespyr]
+objref pncampainback[numberpyrs][synapsespyr], pncnmdainback[numberpyrs][synapsespyr]
+objref stimvectorEpyr[numberpyrs][synapsespyr]
+objref filepyrinput[numberpyrs]
+
+strdef tmpstring3
+
+for kapa=0, numberpyrs-1{
+for t=0,synapsespyr-1{
+filepyrinput[kapa]=new File()
+  sprint(tmpstring3, "fthetan300/run_1/cell_%d.txt", kapa+1) 
+  filepyrinput[kapa].ropen(tmpstring3)
+  
+
+
+	stimvectorEpyr[kapa][t]= new Vector()
+	stimvectorEpyr[kapa][t].scanf(filepyrinput[kapa])
+  filepyrinput[kapa].close()		
+	
+}
+}
+
+objref dendpyrinput
+proc call_vecstimpyr(){
+ranpyrinput = new Random($1)
+PIDbpyrinput = ranpyrinput.uniform(0, 1)
+
+
+dendpyrinput=new Random($1)
+dpyr=dendpyrinput.discunif(0,4)
+for pyr=0,numberpyrs-1 {
+for synpyrinput=0,synapsespyr-1 {
+
+	     pevstiminh[pyr][synpyrinput] = new VecStim(0.5)
+	      pevstiminh[pyr][synpyrinput].delay =0
+	      pevstiminh[pyr][synpyrinput].play(stimvectorEpyr[pyr][synpyrinput])
+	       PIDbpyrinput=ranpyrinput.repick()
+	       dpyr=dendpyrinput.repick()
+			PyramidalList.o(pyr).dend[dpyr] pampain_back[pyr][synpyrinput]=new GLU(PIDbpyrinput)
+			PyramidalList.o(pyr).dend[dpyr] pnmdain_back[pyr][synpyrinput]=new NMDA(PIDbpyrinput)
+
+			pncampainback[pyr][synpyrinput] = new NetCon(pevstiminh[pyr][synpyrinput], pampain_back[pyr][synpyrinput], -20,0, ampaweightin)
+			pncnmdainback[pyr][synpyrinput] = new NetCon(pevstiminh[pyr][synpyrinput], pnmdain_back[pyr][synpyrinput], -20, 0, nmdaweightin)
+	}
+	}
+	}
+	
+print "Background for PYrs ok"	

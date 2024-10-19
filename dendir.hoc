@@ -1,0 +1,173 @@
+/* Dendritic input resistance. Alexandra Tzilivaki 2024*/
+//Initialize NEURON
+load_file("nrngui.hoc")  
+v_init=-68        //for interneuron
+
+//-----Objects for record data
+objref cv
+cv=new CVode()
+cvode.active(0)     
+tstop=500 //2000//500
+steps_per_ms=10
+dt=1/steps_per_ms
+n=int(tstop/dt)
+
+objref all_msec
+all_msec = new Vector(n,0)
+for q=0,n-1 {all_msec.x[q]=q*dt}
+//print n
+//print all_msec
+
+
+//Open Fast Spiking Template
+xopen("PVCompartmental.hoc") //xopen("PVCompartmental2.hoc")  //Different reconstrunctions can be used
+print "1. PV Cell ok"
+
+
+numberpvs=1
+
+
+objref PVCells[numberpvs], PVList, ranlist
+PVList=new List()
+ranlist=new List()
+
+
+for ii=0, numberpvs-1{
+PVCells[ii]= new FScell()
+PVList.append(PVCells[ii])
+}
+
+
+
+xopen("../bash_templates/basic-graphics.hoc") 
+addgraph("PVList.o(0).soma.v(0.5)",-90,50) // PV
+
+
+
+proxzero = 0
+forsec PVList.o(0).basal_prox {          //ctpr= basal prox
+	proxzero = proxzero +1
+	}
+distzero= 0
+
+forsec PVList.o(0).basal_dist {  //ctrd= basal dist
+	distzero = distzero +1
+	}
+
+number_dendszero = proxzero + distzero
+
+
+
+////////////////////////////////RECORD&SAVE//////////////////////////////////////////////////////
+objref vinsoma[numberpvs], insomaref[numberpvs], vindendnew[numberpvs], vindend[numberpvs][number_dendszero], indendrefnew[numberpvs], indendref[numberpvs][number_dendszero]
+
+strdef data_dir, tempstr
+
+sprint(data_dir,"DATA/dendIR/cell163")
+sprint(tempstr,"mkdir -p %s", data_dir)
+system(tempstr)
+
+proc record(){
+for cnpv=0,numberpvs-1{
+vinsoma[cnpv]=new Vector()
+vinsoma[cnpv].record(&PVList.o(cnpv).soma.v(0.5)) 
+vindendnew[cnpv]=new Vector()
+vindendnew[cnpv].record(&PVList.o(cnpv).dend[$1].v(0.5))
+//for kika=0,number_dendszero-1{
+//vindend[cnpv][kika]=new Vector()
+//vindend[cnpv][kika].record(&PVList.o(cnpv).dend[kika].v(0.5))
+//}
+}
+}
+
+
+objref fo
+strdef fno
+
+
+
+proc save(){
+for cnpv=0,numberpvs-1{
+sprint(tempstr, "%s/pvsoma_%d_stimdend_%d.dat", data_dir, cnpv, mydend)
+insomaref[cnpv] = new File()
+insomaref[cnpv].wopen(tempstr)
+vinsoma[cnpv].printf(insomaref[cnpv],"%g\n")
+insomaref[cnpv].close()
+sprint(tempstr, "%s/pv_%d_stimdend_%d.dat", data_dir, cnpv,mydend)
+indendrefnew[cnpv] = new File()
+indendrefnew[cnpv].wopen(tempstr)
+vindendnew[cnpv].printf(indendrefnew[cnpv],"%g\n")
+indendrefnew[cnpv].close()
+
+/*for kika=0,number_dendszero-1{
+sprint(tempstr, "%s/pv_%d_stimdend_%d.dat", data_dir, cnpv,kika)
+indendref[cnpv][kika] = new File()
+indendref[cnpv][kika].wopen(tempstr)
+vindend[cnpv][kika].printf(indendref[cnpv][kika],"%g\n")
+indendref[cnpv][kika].close()
+
+
+}*/
+}
+}
+
+
+
+
+
+objref ic_new
+proc applyIClamp(){
+
+        PVList.o(0).dend[$1] {ic_new = new IClamp(0.5)}            
+	ic_new.amp = revma//(nA)
+	ic_new.del=50//100//100//0
+	ic_new.dur=100 //500//or 500//2000
+	print  "Stim: ",mydend," with ",ic_new.amp," nA"
+}
+
+
+for mydend=0,63-1 { //This cell has 63 branches
+
+		revma=-0.1//+0.02*runs // Intensity of my stimulus
+		applyIClamp(mydend) 	
+		
+		record(mydend) 
+
+		run()
+	
+		//save()
+				
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,314 @@
+// Network cell template
+// PyramidalCell
+// modified by Alexandra Tzilivaki alexandra_tzilivaki@charite.de
+
+begintemplate PyramidalCell
+public is_art
+public init, topol, basic_shape, subsets, geom, biophys,   geom_nseg
+public pre_list
+public x, y, z, position//aleka vldadimirov 2013
+
+// dend[0]=dend[0] dend[1]=dend[1] dend[2]=dend[2] dend[3]=dend[3] dend[4]=dend[4] numberpyrdends=5
+
+public soma, dend                
+
+
+
+
+public all
+
+objref pre_list
+
+proc init() {
+  topol()
+  subsets()
+  geom()
+  biophys()
+  geom_nseg()
+  pre_list = new List()
+  
+  x = y = z = 0 // only change via position //aleka vladimirov 2013
+}
+
+create soma, dend[5]                   
+
+proc topol() { local i
+  connect dend[0](0),    soma(1)
+  
+  connect dend[2](0),  dend[0](1)
+ 
+  connect dend[1](0),  dend[0](1)
+ 
+  connect dend[3](0),    soma(0)
+
+  connect dend[4](0),    soma(0)
+
+  basic_shape() //aleka htan comment 
+}
+
+proc basic_shape() {
+  soma        { pt3dclear() pt3dadd(-7, 0, 0, 10)     pt3dadd(8, 0, 0, 10)      } //15 or 10 vasika
+  dend[0]    { pt3dclear() pt3dadd(0, 0, 0, 4)       pt3dadd(0, 100, 0, 4)     } // 4 3 2 
+ 
+  dend[1]  { pt3dclear() pt3dadd(15, 0, 0, 2)      pt3dadd(60, 45, 0, 2)     } //1 1 
+
+  dend[2]  { pt3dclear() pt3dadd(-15, 0, 0, 2)     pt3dadd(-60, 45, 0, 2)    }
+ 
+  dend[3]    { pt3dclear() pt3dadd(-7, 0, 0, 2)     pt3dadd(45, -29, 0, 2)    } //1.5
+
+  dend[4]    { pt3dclear() pt3dadd(-7, 0, 0, 2)     pt3dadd(-45, -29, 0, 2)   } //1.5
+ 
+}
+
+objref all
+proc subsets() { local i
+  objref all
+  all = new SectionList()
+  
+  soma        all.append()
+  dend[0]    all.append()
+  
+  dend[1]  all.append()
+  
+  dend[2]  all.append()
+ 
+  dend[3]    all.append()
+ 
+  dend[4]    all.append()
+ 
+
+}
+
+proc geom() {
+  soma {  L = 10  diam = 10  }
+
+  dend[0] {  L = 100  diam = 4.0  }
+ 
+  dend[1]  {  L = 100  diam = 2.0  }
+ 
+  dend[2]  {  L = 100  diam = 2.0  }
+
+  // Basal dendrites extend 300 um
+  dend[3]  {  L = 100  diam = 2.0  }
+  
+  dend[4]  {  L = 100  diam = 2.0  }
+}
+
+external lambda_f
+proc geom_nseg() {
+  forsec all { nseg = int((L/(0.1*lambda_f(100))+.9)/2)*2 + 1  }
+}
+
+/*proc geom_nseg() {
+  forsec all {
+	nseg = 1 + 2*int(L/40)
+  }
+}*/
+
+
+proc biophys() {
+
+  //	Rm = 28000	// Ohm.cm^2 (Migliore value)
+  Rm = 6000	// Ohm.cm^2 (Migliore value)
+
+  gka_soma = 0.0075 // for Rinput validation
+  gh_soma  = 0.00005  
+
+  soma {
+
+
+        insert hha_old
+    gnabar_hha_old = 0.07*1.5
+    gkbar_hha_old  = 0.007/8.065
+    el_hha_old     = -70
+    // leak conductance
+    insert pas
+    g_pas =  1/Rm
+    
+    // h current according to Migliore et al. 2004 
+    insert h
+    ghdbar_h = gh_soma
+   vhalfl_h = -73
+
+    // proximal A current
+    insert kap
+    gkabar_kap = gka_soma	//0.0075
+
+    // m-type potassium current
+    insert km
+    gbar_km    = 0.06// (pS/um2)
+    
+    // HVA Ca++-L type current
+    insert cal
+    gcalbar_cal = 0.0014/2
+
+    // LVA Ca++-T type current
+    insert cat	
+    gcatbar_cat = 0.0001/2
+
+    // HVAm Ca++-R type current
+    insert somacar
+    gcabar_somacar = 0.0003
+
+    // K(Ca) sAHP potassium type current
+    insert kca
+    gbar_kca = 15*0.0001
+    
+    // medium AHP K++ current (BPG)
+    insert mykca
+    gkbar_mykca = 0.09075*100
+
+    // calcium pump/buffering mechanism
+    insert cad
+  }
+
+  dend[0] {
+  
+
+    insert hha_old
+    gnabar_hha_old = 0.007*1.2
+    gkbar_hha_old  = 0.007/8.065
+    el_hha_old     = -70
+    
+    // h current according to Migliore et al. 2004 
+    insert h
+    ghdbar_h = 2*gh_soma			//0.000005						
+    vhalfl_h = -81
+
+    insert car
+    gcabar_car = 0.1*0.0003
+
+    insert calH
+    gcalbar_calH = 0.1*0.00031635	// varies from .1*0.00031635 to 4.6*0.00031635 as distance increases
+
+    insert cat
+    gcatbar_cat = 0.0001
+
+    // calcium pump/buffering mechanism
+    insert cad			
+    
+    // slow AHP K+ current
+    insert kca			
+    gbar_kca = 10*0.0001		// varies depending on distance from 0.5*0.0001 to 5*0.0001
+    
+    // medium AHP K++ current (BPG)
+    insert mykca
+    gkbar_mykca = 2*0.0165
+
+    // m-type K current
+    insert km
+    gbar_km = 0.06			
+
+    // Inserting A-current
+    insert kap               	
+    gkabar_kap = 2*gka_soma		//0.0075
+
+    insert kad
+    gkabar_kad = 0
+
+    
+
+    // leak conductance
+    insert pas
+  }
+
+   for i=1,2 dend[i] {
+  
+    insert hha_old      
+    gnabar_hha_old = 0.007*1.2
+    gkbar_hha_old  = 0.007/8.065
+    el_hha_old     = -70
+    gl_hha_old     = 0
+
+    insert pas      // passive properties
+    g_pas          = 1/200000
+
+    insert kad      // Insert basal A current
+    gkabar_kad = 6.5*gka_soma
+    }
+
+ 
+ for l=3,4 dend[l] {
+ 
+    insert h     			// h current according to Migliore et al. 2004 
+    ghdbar_h = gh_soma
+    vhalfl_h = -81
+
+    insert car
+    gcabar_car = 0.1*0.0003
+
+    insert calH
+    gcalbar_calH = 0.1*0.00031635	// varies from .1*0.00031635 to 4.6*0.00031635 as distance increases
+
+    insert cat
+    gcatbar_cat = 0.0001
+
+    insert cad			// calcium pump/buffering mechanism
+    
+    insert kca			// slow AHP K+ current
+    gbar_kca = 5*0.0001		// varies depending on distance from 0.5*0.0001 to 5*0.0001
+    
+    insert mykca  			// medium AHP K++ current (BPG)
+    gkbar_mykca = 5*0.0165
+
+    insert km			// m-type K current
+    gbar_km = 0.06			// varies with distance (see Poirazi et al. 2003 cell-setup.hoc file)
+
+    insert kap               	// Inserting A-current
+    gkabar_kap = gka_soma			//0.0075
+
+    insert kad
+    gkabar_kad = 6.5*gka_soma
+
+   insert hha_old 			// HH mechanism with high threshold for Na spikes (-50 mV)
+    gnabar_hha_old = 0.007*1.2
+    gkbar_hha_old  = 0.007/8.065
+    el_hha_old     = -70
+
+    insert pas 			// leak conductance
+   
+
+  }
+ 
+
+  forsec all {
+    
+    e_pas = -70
+    g_pas = 1/Rm		// crucial parameter for backpropagating action potential spiking of PCs
+    //		Ra = 50
+    Ra = 150
+    cm = 1
+
+  }
+
+ /* aleka vladimirov 2013*/
+
+  forsec all {                                   //vladimirov egrafe forall
+	insert extracellular
+	xraxial =  1e+09
+	xraxial[1] =  1e+09
+	xg = 1e+09
+	xg[1] = 1e+09
+	xc = 0
+	xc[1] = 0
+	e_extracellular = 0 
+	} 
+/*aleka vladimirov 2013*/
+
+}
+
+//aleka vladimirov 2013 position procedure to exei kai h bezaire
+proc position() { local i
+  soma for i = 0, n3d()-1 {
+    pt3dchange(i, $1-x+x3d(i), $2-y+y3d(i), $3-z+z3d(i), diam3d(i))
+  }
+  x = $1  y = $2  z = $3
+}
+
+//aleka vladimirov 2013
+
+
+func is_art() { return 0 }
+
+endtemplate PyramidalCell
+

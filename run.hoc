@@ -1,0 +1,204 @@
+//This is the main hoc file that runs the network
+
+//Initialize NEURON
+load_file("nrngui.hoc")  
+v_init=-68 //for interneuron
+
+//-----Objects for record data
+objref cv
+cv=new CVode()
+cvode.active(0)     
+tstop=1200 //2000
+steps_per_ms=10
+dt=1/steps_per_ms
+n=int(tstop/dt)
+
+objref all_msec
+all_msec = new Vector(n,0)
+for q=0,n-1 {all_msec.x[q]=q*dt}
+
+xopen("PVCompartmental.hoc")
+print "1. PV FSBC Cell ok"
+xopen("Pyr.hoc") 
+print "2. Pyr Cells ok"
+
+numberpyrs=20
+numberpvs=2
+ncell=numberpyrs+numberpvs
+
+objref PyramidalCells[numberpyrs], PVCells[numberpvs], PyramidalList, PVList, ranlist
+
+PyramidalList=new List()
+PVList=new List()
+ranlist=new List()
+
+for i=0,numberpyrs-1{
+PyramidalCells[i]= new PyramidalCell()
+PyramidalList.append(PyramidalCells[i])
+}
+
+for ii=0, numberpvs-1{
+PVCells[ii]= new FScell()
+PVList.append(PVCells[ii])
+}
+
+proc setpositionsPVs(){ local lala,x,y,z
+for lala=0,numberpvs-1 {
+x=120+30*lala//1+20*lala
+y=5//1+15*lala
+z=1+0.00005*lala
+PVList.o(lala).position(x,y,z)
+}
+}
+setpositionsPVs()
+
+proc setpositionsPyrs(){ local l,x,y,z
+for l=0, numberpyrs-1{
+x=0+20*l//-400+40*l
+y=0 
+z=3
+PyramidalList.o(l).position(x,y,z)
+}
+}
+setpositionsPyrs()
+
+//print"4. Pyrs position ok"
+
+Ex =185//180
+
+Ey= 12//15
+
+Ez =12//12
+
+{load_file("LFP.hoc")}  // load the GUI and standard run libraries
+
+
+// Autapse PV-PV
+PV2PVmaxsyn=12  
+objref gabaain[PV2PVmaxsyn], congabaain[PV2PVmaxsyn]
+proc self_inhibition() {local delstimpv localobj fpvpv
+	fpvpv = new Random(100)
+	delstimpv=fpvpv.normal(0.6,0.2)
+	for kapa=0,numberpvs-1{
+	for a=0, (PV2PVmaxsyn-1) {
+		PVList.o(kapa).soma {gabaain[a]=new GABAain(0.5) }
+		delstimpv = fpvpv.repick()
+		if (delstimpv<0) {delstimpv=delstimpv*(-1)}
+		congabaain[0]= new NetCon(&v(1), gabaain[0], -20, delstimpv, 5.1e-4*14)
+	}
+    }
+}
+//self_inhibition()
+
+xopen("basic-graphics.hoc") 
+/*for j=0, (numberpyrs-1) {addgraph("PyramidalList.o(j).soma.v(0.5)",-90,50)} //Pyr
+addgraph("vrec",-0.1,0.1) //lfp
+addgraph("PVList.o(0).soma.v(0.5)",-90,50) // PV
+addgraph("PVList.o(1).soma.v(0.5)",-90,50) // PV*/
+
+proxzero = 0
+forsec PVList.o(0).basal_prox {//ctpr= basal prox
+	proxzero = proxzero +1
+	}
+distzero= 0
+
+forsec PVList.o(0).basal_dist { //ctrd= basal dist
+	distzero = distzero +1
+	}
+
+number_dendszero = proxzero + distzero
+
+
+////////////////////////////////RECORD&SAVE//////////////////////////////////////////////////////
+objref vsoma[numberpyrs], somaref[numberpyrs], vinsoma[numberpvs], insomaref[numberpvs]
+
+strdef data_dir, tempstr
+
+sprint(data_dir,"DATA/cell162//TESTs/Bimodal")
+sprint(tempstr,"mkdir -p %s", data_dir)
+system(tempstr)
+
+proc record(){
+for cnpv=0,numberpvs-1{
+vinsoma[cnpv]=new Vector()
+vinsoma[cnpv].record(&PVList.o(cnpv).soma.v(0.5))   
+}
+
+for cn=0,numberpyrs-1{
+vsoma[cn]=new Vector()
+vsoma[cn].record(&PyramidalList.o(cn).soma.v(0.5))
+}
+}
+objref fo
+strdef fno
+proc save(){
+for cn=0,numberpyrs-1{
+sprint(tempstr, "%s/pyrsoma_%d_trial_%d.dat", data_dir, cn,$1)
+somaref[cn]= new File()
+somaref[cn].wopen(tempstr)
+vsoma[cn].printf(somaref[cn],"%g\n")
+somaref[cn].close()
+}
+
+for cnpv=0,numberpvs-1{
+sprint(tempstr, "%s/pvsoma_%d_trial_%d.dat", data_dir, cnpv,$1)
+insomaref[cnpv] = new File()
+insomaref[cnpv].wopen(tempstr)
+vinsoma[cnpv].printf(insomaref[cnpv],"%g\n")
+insomaref[cnpv].close()
+}
+
+//LFP
+sprint(tempstr,"%s/lfp_trial_%d.dat", data_dir,$1)
+fo=new File()
+fo.wopen(tempstr)
+Vrec.printf(fo,"%g\n")
+fo.close()
+}
+
+//causal morphological manipulation as Tzilivaki 2019 to make full sub or full supra trees
+
+/*for w=0,1{ //for the 2 PV FSBC in the circuit
+
+for all=0,62{ //for all dends (note the other reconstruction has 58 dends
+access PVList.o(w).dend[all]
+PVList.o(w).dend[all].L=85//20 for supra                
+PVList.o(w).dend[all].diam=0.3//1.2 for supra           
+
+ }
+}
+*/
+
+xopen("vecstimPyr.hoc")
+//------------------------------------// For Bimodal activation uncomment lines 171-172
+xopen("vecstimFSBC.hoc")
+xopen("circuit.hoc")
+//------------------------------------// For Supralinear/Sublinear Activation uncomment lines 174-175
+/*xopen("vecstimFSBC_Inputsto_subsupra.hoc")
+xopen("circuit_inputstosubsupra.hoc")*/
+
+for runs=1,15 {  // if you want to run the network using the bash script bashrun.sh make sure to comment the for loop here and line 200!!!
+//normally i run many random simulation trials for different PV reconstructions
+call_vecstimpyr(runs)
+
+call_vecstim(runs)
+
+connect_pyr(runs)
+
+connect_pvpyr(runs)
+
+connect_pyrpv(runs)
+
+connect_pvpv(runs)
+
+record()
+
+run()
+
+//save(runs)  //uncomment if you want to save the data
+
+}
+
+
+print "ALLES KLAR!!"
+

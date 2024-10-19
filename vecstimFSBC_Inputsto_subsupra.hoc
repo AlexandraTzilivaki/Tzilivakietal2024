@@ -1,0 +1,119 @@
+//Alexandra Tzilivaki.
+
+excitatory_synpvapses=7 // 7 syns cannot alone generate spiking. That choice made to ensure that FSBCs are driven primarily by Pyrs 
+ampaweightpv=7.5e-4
+nmdaweightpv=3.2e-4
+
+objref  pevstiminhpv[numberpvs][excitatory_synpvapses], devstiminh[numberpvs][excitatory_synpvapses] 
+objref ranpvinput
+objref pampain_back_pv[numberpvs][excitatory_synpvapses], pnmdain_back_pv[numberpvs][excitatory_synpvapses]
+objref pncampainbackpv[numberpvs][excitatory_synpvapses], pncnmdainbackpv[numberpvs][excitatory_synpvapses]
+                                                      
+objref filepvinput[numberpvs]
+objref stimvectorEpv[numberpvs][excitatory_synpvapses]
+
+strdef tmpstring2
+for c=0, numberpvs-1{
+    for tc=0,excitatory_synpvapses-1{
+        filepvinput[c]=new File()
+        sprint(tmpstring2, "fthetan300/run_1/cell_%d.txt", c+21)
+        filepvinput[c].ropen(tmpstring2)
+  	stimvectorEpv[c][tc]= new Vector()
+	stimvectorEpv[c][tc].scanf(filepvinput[c])
+        filepvinput[c].close()		
+ }
+}
+
+
+objref dpool, rdend 
+
+objref eDendpersynpv[numberpvs][excitatory_synpvapses]
+
+
+number_dendszero=63
+dpool= new Vector(number_dendszero) // !!
+j=0
+for i= 0, number_dendszero-1{
+    dpool.x[j]=i
+    j=j+1
+}
+
+//-----------choose only supra or  only sub branches
+
+
+SUPRA=1//0 select supra or sub dendrites  //SUPRA=1 means synapses to supra branches. SUPRA=0 means synapses to sub branches
+
+objref supralinear,sublinear, helpfilesupra, helpfilesub
+
+if (SUPRA){
+helpfilesupra=new File()
+helpfilesupra.ropen("suprahipp62.txt")
+supralinear=new Vector()
+supralinear.scanf(helpfilesupra)
+
+number_dends=supralinear.size()
+print "supra dends=", number_dends
+
+
+}else{
+helpfilesub=new File()
+helpfilesub.ropen("subhipp62.txt")
+sublinear=new Vector()
+sublinear.scanf(helpfilesub)
+
+number_dends=sublinear.size()
+print "sub dends=", number_dends
+}
+//---------------------------------------------------
+
+objref rdinput,randomDendsPerSyninput 
+
+proc call_vecstim() {
+//rdend=new Random($1)
+//supra sub 
+rdinput = new Random($1) 
+rdinput.uniform(0, number_dends-1) 
+
+randomDendsPerSyninput = new Vector(excitatory_synpvapses,0) 
+
+ranpvinput = new Random($1)
+PIDb = ranpvinput.uniform(0, 1)
+
+for cell=0,numberpvs-1{
+
+
+for kin = 0 , excitatory_synpvapses-1{
+if (SUPRA){
+          randomDendsPerSyninput.x[kin] = supralinear.x[rdinput.uniform(0,number_dends-1)]
+	  print "Dendrite selected is", randomDendsPerSyninput.x[kin]
+   }else{
+
+            randomDendsPerSyninput.x[kin] = sublinear.x[rdinput.uniform(0,number_dends-1)]   
+            print "Dendrite selected is", randomDendsPerSyninput.x[kin]
+ }
+} 
+
+for synpv=0,excitatory_synpvapses-1 {
+	       pevstiminhpv[cell][synpv] = new VecStim(0.5)
+	       pevstiminhpv[cell][synpv].delay = 0
+	       pevstiminhpv[cell][synpv].play(stimvectorEpv[cell][synpv])
+	       PIDb=ranpvinput.repick()
+	       edendritis = randomDendsPerSyninput.x[synpv] 
+              print "edendritis", edendritis
+	      PVList.o(cell).dend[edendritis] pampain_back_pv[cell][synpv]=new CPGLUIN(PIDb)
+	      PVList.o(cell).dend[edendritis] pnmdain_back_pv[cell][synpv]=new NMDAIN(PIDb)
+	     pncampainbackpv[cell][synpv] = new NetCon(pevstiminhpv[cell][synpv], pampain_back_pv[cell][synpv], -20, 0, ampaweightpv)
+	     pncnmdainbackpv[cell][synpv] = new NetCon(pevstiminhpv[cell][synpv], pnmdain_back_pv[cell][synpv], -20, 0, nmdaweightpv)
+  }
+
+ }
+
+} // procedure
+
+
+
+
+
+
+
+
