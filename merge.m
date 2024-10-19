@@ -1,0 +1,30 @@
+%merge loaded datasets from different pv reconstructions used
+
+Bimodal_lfp=[Bimodal3_lfp Bimodal_lfp]
+
+Bimodal_lfptheta=[Bimodal3_lfptheta Bimodal_lfptheta]
+Bimodal_lfpgamma=[Bimodal3_lfpgamma Bimodal_lfpgamma]
+
+% Supralinear_lfp=[Supralinear3_lfp Supralinear_lfp]
+
+Supralinear_lfptheta=[Supralinear3_lfptheta Supralinear_lfptheta]
+Supralinear_lfpgamma=[Supralinear3_lfpgamma Supralinear_lfpgamma]
+Sublinear_lfpgamma=[Sublinear3_lfpgamma Sublinear_lfpgamma]
+Sublinear_lfptheta=[Sublinear3_lfptheta Sublinear_lfptheta]
+
+Sublinear_lfp=[Sublinear3_lfp Sublinear_lfp]
+
+
+PYR_Bimodal_meanspikes=[PYR_Bimodal3_meanspikes;PYR_Bimodal_meanspikes]
+PYR_Supralinear_meanspikes=[PYR_Supralinear3_meanspikes; PYR_Supralinear_meanspikes]
+PYR_Sublinear_meanspikes=[PYR_Sublinear3_meanspikes; PYR_Sublinear_meanspikes]
+PV_Bimodal_meanspikes=[PV_Bimodal3_meanspikes; PV_Bimodal_meanspikes]
+PV_Supralinear_meanspikes=[PV_Supralinear3_meanspikes; PV_Supralinear_meanspikes]
+PV_Sublinear_meanspikes=[PV_Sublinear3_meanspikes; PV_Sublinear_meanspikes]
+
+PYR_Bimodal_stdspikes=[PYR_Bimodal3_stdspikes PYR_Bimodal_stdspikes]
+PYR_Supralinear_stdspikes=[PYR_Supralinear3_stdspikes PYR_Supralinear_stdspikes]
+PYR_Sublinear_stdspikes=[PYR_Sublinear3_stdspikes PYR_Sublinear_stdspikes]
+PV_Bimodal_stdspikes=[PV_Bimodal3_stdspikes PV_Bimodal_stdspikes]
+PV_Supralinear_stdspikes=[PV_Supralinear3_stdspikes PV_Supralinear_stdspikes]
+PV_Sublinear_stdspikes=[PV_Sublinear3_stdspikes PV_Sublinear_stdspikes]
